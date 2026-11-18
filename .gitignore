@@ -1,0 +1,10 @@
+.DS_Store
+*.dll
+*.exe
+*.log
+*.zip
+*.tar.*
+/build/
+/sources/
+/runtime/
+/bottles/

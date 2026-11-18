@@ -1,0 +1,47 @@
+--- a/dlls/ntdll/loader.c
++++ b/dlls/ntdll/loader.c
+@@ -2083,6 +2083,31 @@
+ }
+ 
+ 
++/* Opt-in compatibility workaround for WoT's prefab-effects availability check.
++ * Keep the real export table and every other process unchanged.  This is checked
++ * only after resolving the host-version function, including ordinal lookups.
++ */
++extern void CDECL wine_get_host_version( const char **sysname, const char **release );
++
++static BOOL hide_wot_host_version( void *proc )
++{
++    const RTL_USER_PROCESS_PARAMETERS *params;
++    const WCHAR *image, *basename, *p;
++    UNICODE_STRING variable = RTL_CONSTANT_STRING( L"WOT_HIDE_HOST_EXPORT" );
++    WCHAR enabled[2];
++    UNICODE_STRING value = { 0, sizeof(enabled), enabled };
++
++    if (proc != (void *)wine_get_host_version) return FALSE;
++    if (!(params = NtCurrentTeb()->Peb->ProcessParameters)) return FALSE;
++    if (!(image = params->ImagePathName.Buffer)) return FALSE;
++    basename = image;
++    for (p = image; p < image + params->ImagePathName.Length / sizeof(WCHAR); p++)
++        if (*p == '\\' || *p == '/') basename = p + 1;
++    if (wcsicmp( basename, L"WorldOfTanks.exe" )) return FALSE;
++    if (RtlQueryEnvironmentVariable_U( NULL, &variable, &value )) return FALSE;
++    return value.Length == sizeof(WCHAR) && enabled[0] == '1';
++}
++
+ /******************************************************************
+  *		LdrGetProcedureAddress  (NTDLL.@)
+  */
+@@ -2103,6 +2128,12 @@
+     {
+         void *proc = name ? find_named_export( module, exports, exp_size, name->Buffer, -1, NULL, wm, TRUE )
+                           : find_ordinal_export( module, exports, exp_size, ord - exports->Base, NULL, wm, TRUE );
++        if (proc && hide_wot_host_version( proc ))
++        {
++            TRACE( "WoT compatibility: hiding wine_get_host_version\n" );
++            *address = NULL;
++            proc = NULL;
++        }
+         if (proc)
+         {
+             *address = proc;
