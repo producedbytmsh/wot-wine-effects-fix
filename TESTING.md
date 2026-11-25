@@ -28,7 +28,7 @@ Visual checks were manual. No comparison video, Windows reference, or controlled
 
 Metal pipeline creation errors involving `float4`/`int4` outputs and `R16Uint`/`R32Uint` attachments remain in the logs. An `R32Uint` error also occurred in the vendor baseline. The live test showed no reported visible problem, but it does not establish that every rendering pass is correct.
 
-This patch removes a game-side effects restriction. It does not change DXMT, fix those pipeline errors, or prove equal performance between the two modes. Other game versions, Wine versions, and renderers have not been validated.
+This patch removes a game-side effects restriction. It does not change DXMT, fix those pipeline errors, or prove equal performance between the two modes. Effect rendering on other game versions, Wine versions, and renderers has not been validated.
 
 ## Reference hashes
 
@@ -37,3 +37,33 @@ This patch removes a game-side effects restriction. It does not change DXMT, fix
 | Tested `win64/WorldOfTanks.exe` | `58325ded3e2db7134638971e33de1eab09737f8b66401554d9723a2bf246bb11` |
 | Vendor x86-64 PE `ntdll.dll` | `6dff64c00793ce92124f1316985c63783f539f26b392975c70f57637458d2387` |
 | Patched, debug-stripped `ntdll.dll` | `ee4cf6c6adaa48458d934ad7725e0ac8da86658956219c7cb6e36adc51fbbad3` |
+
+## Game-update recovery — 25 November 2026
+
+The installed EU HD client updated to `2.4.2.0 #1000` while the private client
+retained `2.4.1.1 #993` executables and metadata. Its old `paths.xml` referenced
+16 packages no longer present in the shared resources, causing a fatal
+“Game resource path does not exist” error before startup.
+
+Refreshed the private root client files, `win64`, and current-version mods from
+the updated installation using `sync-client.py --include-mods`. Obsolete private
+`data.wgpdc` was moved to the rollback backup. The original resource directory
+remained shared. All 216 updated package references exist, and private root files
+and the game executable match the installation.
+
+All three export lookup checks above passed with the existing patched DLL.
+The updated client reached the garage according to its log, and the user confirmed
+that it opens normally. Effects in battle on this version have not yet been visually
+rechecked. Updated `win64/WorldOfTanks.exe` SHA-256:
+
+```text
+0547c40d8f55bb94437ba54603ddb7cec0075aca1a0d5a51cf181f1e044496f5
+```
+
+The refresh helper's four automated tests cover stale-client refresh with a backup,
+active-version mod copying, preservation of shared resources, refusal of incomplete
+source packages or a running game, and rollback after a failed post-copy check:
+
+```sh
+python3 -m unittest discover -s tests -v
+```

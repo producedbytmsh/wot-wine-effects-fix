@@ -45,3 +45,11 @@ CodeWeavers could scope this behavior to World of Tanks through an application c
 ## License
 
 LGPL-2.1-or-later, matching Wine's `dlls/ntdll/loader.c`. See [LICENSE](LICENSE).
+
+## Game updates with shared resources
+
+Keep a private client's executables and `paths.xml` in sync with the installation
+that supplies its `res` directory. A stale private copy can fail at startup after
+an update because its package list refers to files the update removed. Use
+[`sync-client.py`](sync-client.py) and the [update procedure](BUILD.md#after-a-game-update)
+to check and refresh the private client with a rollback backup.

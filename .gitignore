@@ -8,3 +8,5 @@
 /sources/
 /runtime/
 /bottles/
+__pycache__/
+*.pyc

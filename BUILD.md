@@ -73,3 +73,35 @@ That is a reference for the tested artifact, not a guarantee that another toolch
 Set `WOT_HIDE_HOST_EXPORT=1` only on the game launch. To disable the behavior, omit the variable. To remove the patch entirely, close the game and restore both original DLLs.
 
 Keep game updates separate from this test setup. If a test client shares its resource directory with the original installation, repair or update operations affect those shared resources.
+
+## After a game update
+
+A private client that shares the installed game's `res` directory must also use
+matching executables and metadata. Updating the installed game alone leaves the
+private `paths.xml` referring to removed packages and can prevent startup with
+“Game resource path does not exist”.
+
+Close the game and finish the update in the original installation. With Python
+3.11 or newer, check and refresh the private copy:
+
+```sh
+python3 sync-client.py '/path/to/installed/World_of_Tanks_EU' \
+  '/path/to/private/World_of_Tanks_EU' --check
+python3 sync-client.py '/path/to/installed/World_of_Tanks_EU' \
+  '/path/to/private/World_of_Tanks_EU' --include-mods
+```
+
+The helper requires the private `res` symlink to resolve to the installed client's
+resources. It stages the root client files and `win64` before replacing them,
+backs up replaced or obsolete files beside the private client, and rolls back if
+replacement or verification fails. It refuses missing source packages or a running
+WoT process. Keep Game Center closed during copying. Preferences, the Wine runtime,
+and shared resources are outside the copied paths.
+
+`--include-mods` also copies mods from the version paths in the new `paths.xml` and
+`mods/configs`, backing up the private versions first. Omit it to retain private
+mods. Mods must support the updated game; old-version replays may also stop working.
+The check verifies the root client files, game executable and package availability;
+it is not a full vendor integrity check. Re-run the export probes and verify startup
+and effects after updating. The effects patch itself need not change for a resource
+layout mismatch.
